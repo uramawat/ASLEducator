@@ -1,0 +1,29 @@
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Dependency directories
+node_modules/
+target/
+
+# OS metadata
+.DS_Store
+
+# IDEs
+.vscode/
+.idea/
+
+# --- ML & Data ---
+# Ignore raw WLASL videos and extracted landmarks
+ml/data/
+
+# Ignore user practice attempt recordings
+backend/storage/videos/
+
+# Ignore trained model binaries (often too big for Github)
+ml/models/
+
+# Ignore Python virtual environments
+ml/.venv/
+.venv/

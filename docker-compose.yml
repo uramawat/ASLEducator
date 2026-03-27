@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  # Database Service
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: aslexperiment
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d aslexperiment"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Python ML Microservice
+  ml:
+    build: 
+      context: ./ml
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount models folder so training done locally is visible to container, and vice versa
+      - ./ml/models:/app/models
+
+  # Rust Gateway Backend
+  backend:
+    build:
+      context: ./backend
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgres://user:password@db:5432/aslexperiment
+      - ML_SERVICE_URL=http://ml:8000/predict
+      - RUST_LOG=debug
+    depends_on:
+      db:
+        condition: service_healthy
+      ml:
+        condition: service_started
+    volumes:
+      # Mount storage logically so user attempt videos are saved to the host OS too
+      - ./backend/storage:/app/storage
+
+  # React Frontend
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "5173:5173"
+    environment:
+      # Expose environment var telling vite where the backend is
+      - VITE_API_URL=http://localhost:3000
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
