@@ -4,20 +4,21 @@ services:
     name: asl-ml-service
     env: docker
     rootDir: ml
-    plan: starter # ML with TensorFlow requires at least 512MB-1GB RAM; Free tier may OOM
+    plan: free
     envVars:
       - key: PORT
         value: 8000
-
-  # 2. Rust Backend Gateway
-  - type: web
+    ...
+    # 2. Rust Backend Gateway
+    - type: web
     name: asl-backend-gateway
     env: docker
     rootDir: backend
-    plan: starter
+    plan: free
     envVars:
       - key: PORT
         value: 3000
+
       - key: DATABASE_URL
         sync: false # You will paste your Supabase URL in the Render UI
       - key: ML_SERVICE_URL
