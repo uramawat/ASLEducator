@@ -3,7 +3,6 @@ services:
   - type: web
     name: asl-ml-service
     env: docker
-    repo: . # Uses the current repo
     rootDir: ml
     plan: starter # ML with TensorFlow requires at least 512MB-1GB RAM; Free tier may OOM
     envVars:
@@ -27,4 +26,5 @@ services:
       - key: CLERK_JWKS_URL
         sync: false # You will paste your Clerk JWKS URL in the Render UI
       - key: RUST_LOG
+        value: info_LOG
         value: info
