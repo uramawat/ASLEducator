@@ -10,5 +10,6 @@ jobs:
     steps:
       - name: Ping Services
         run: |
-          curl -I https://asl-backend-gateway.onrender.com/
+          curl -I https://bettersign.fyi/
           curl -I https://asl-ml-service.onrender.com/health
+          curl -I https://asl-backend-gateway.onrender.com/api/vocabulary
