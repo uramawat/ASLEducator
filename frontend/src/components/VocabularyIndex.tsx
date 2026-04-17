@@ -12,16 +12,14 @@ export function VocabularyIndex({ onSelect, onBack, initialVocabulary }: Props) 
   const [words, setWords] = useState<string[]>(initialVocabulary || []);
   const [loading, setLoading] = useState(!initialVocabulary || initialVocabulary.length === 0);
   const [search, setSearch] = useState('');
+  const [forceFetch, setForceFetch] = useState(0);
 
   useEffect(() => {
-    if (words.length > 0) return;
-    
     const fetchVocab = async () => {
+      setLoading(true);
       try {
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-        console.log("Fetching vocabulary from:", `${apiUrl}/api/vocabulary`);
         const res = await axios.get(`${apiUrl}/api/vocabulary`);
-        console.log("Vocabulary API Response:", res.data);
         setWords(res.data.available_words || []);
       } catch (err) {
         console.error("Failed to fetch vocabulary", err);
@@ -29,8 +27,12 @@ export function VocabularyIndex({ onSelect, onBack, initialVocabulary }: Props) 
         setLoading(false);
       }
     };
-    fetchVocab();
-  }, []);
+    
+    // Fetch if words are empty OR if user explicitly clicked Force Reload
+    if (words.length === 0 || forceFetch > 0) {
+      fetchVocab();
+    }
+  }, [forceFetch]);
 
   const filtered = words.filter(w => w.toLowerCase().includes(search.toLowerCase()));
 
@@ -58,7 +60,7 @@ export function VocabularyIndex({ onSelect, onBack, initialVocabulary }: Props) 
           {words.length} TOTAL
         </span>
         <button 
-          onClick={() => { setLoading(true); setWords([]); }}
+          onClick={() => { setWords([]); setForceFetch(prev => prev + 1); }}
           className="ml-auto text-xs font-bold text-gray-500 hover:text-white uppercase tracking-widest cursor-pointer"
         >
           Force Reload
