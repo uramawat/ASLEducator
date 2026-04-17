@@ -27,6 +27,7 @@ function App() {
 
         try {
           const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+          console.log("Fetching vocabulary from:", `${apiUrl}/api/vocabulary`);
           const res = await axios.get(`${apiUrl}/api/vocabulary`);
           setVocabulary(res.data.available_words || []);
           setYoutubeMapping(res.data.youtube_mapping || {});

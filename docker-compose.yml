@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  # Database Service
+  # 1. Local Postgres (Simulates Supabase)
   db:
     image: postgres:15
     environment:
@@ -19,51 +19,50 @@ services:
       timeout: 5s
       retries: 5
 
-  # Python ML Microservice
+  # 2. Python ML Microservice (The "Brain")
   ml:
     build: 
       context: ./ml
     ports:
       - "8000:8000"
-    volumes:
-      # Mount models folder so training done locally is visible to container, and vice versa
-      - ./ml/models:/app/models
-      # Mount data folder so landmarks are visible
-      - ./ml/data:/app/data
+    environment:
+      - PORT=8000
+    # IMPORTANT: To test if your COPY commands worked for Render, 
+    # comment out these volumes. If it still works without them, 
+    # your production build is safe.
+    # volumes:
+    #   - ./ml/data:/app/data
 
-  # Rust Gateway Backend
+  # 3. Rust Gateway Backend (The "Bridge")
   backend:
     build:
       context: ./backend
     ports:
       - "3000:3000"
     environment:
+      - PORT=3000
       - DATABASE_URL=postgres://user:password@db:5432/aslexperiment
       - ML_SERVICE_URL=http://ml:8000/predict
+      - CLERK_JWKS_URL=https://api.clerk.com/v1/jwks
       - RUST_LOG=debug
     depends_on:
       db:
         condition: service_healthy
       ml:
         condition: service_started
-    volumes:
-      # Mount storage logically so user attempt videos are saved to the host OS too
-      - ./backend/storage:/app/storage
 
-  # React Frontend
+  # 4. React Frontend
   frontend:
     build:
       context: ./frontend
     ports:
       - "5173:5173"
     environment:
-      # Expose environment var telling vite where the backend is
       - VITE_API_URL=http://localhost:3000
+      # Use your Clerk keys here for local testing
+      - VITE_CLERK_PUBLISHABLE_KEY=${VITE_CLERK_PUBLISHABLE_KEY}
     depends_on:
       - backend
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
 
 volumes:
   pgdata:

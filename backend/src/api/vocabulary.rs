@@ -9,7 +9,13 @@ pub async fn handler() -> impl IntoResponse {
         .unwrap_or_else(|_| "http://ml:8000/predict".to_string())
         .replace("/predict", "/health");
     
-    let client = reqwest::Client::new();
+    tracing::info!("DEBUG: Fetching vocabulary from: {}", url);
+    
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(15))
+        .build()
+        .unwrap();
+        
     let res = client.get(&url).send().await;
 
     match res {
@@ -18,6 +24,7 @@ pub async fn handler() -> impl IntoResponse {
             let raw_text = response.text().await.unwrap_or_default();
             
             if !status.is_success() {
+                tracing::error!("DEBUG: ML Health check failed status: {}. Body: {}", status, raw_text);
                 return Json(json!({ 
                     "error": format!("ML Health Check Error ({}): {}", status, raw_text) 
                 })).into_response();
@@ -28,9 +35,8 @@ pub async fn handler() -> impl IntoResponse {
                 let words = json_res.get("available_words").cloned().unwrap_or(json!([]));
                 let mapping = json_res.get("youtube_mapping").cloned().unwrap_or(json!({}));
                 
-                tracing::info!("ML Health Check returned {} words and {} YT links", 
-                    words.as_array().map(|a| a.len()).unwrap_or(0),
-                    mapping.as_object().map(|m| m.len()).unwrap_or(0)
+                tracing::info!("DEBUG: ML Health Success: Found {} words", 
+                    words.as_array().map(|a| a.len()).unwrap_or(0)
                 );
                 
                 Json(json!({ 
@@ -38,9 +44,13 @@ pub async fn handler() -> impl IntoResponse {
                     "youtube_mapping": mapping
                 })).into_response()
             } else {
+                tracing::error!("DEBUG: Failed to parse ML JSON. Raw body: {}", raw_text);
                 Json(json!({ "error": "Failed to parse ML response" })).into_response()
             }
         },
-        Err(e) => Json(json!({ "error": format!("Request to ML service failed: {}", e) })).into_response()
+        Err(e) => {
+            tracing::error!("DEBUG: Request to ML service FAILED: {:?}. URL was: {}", e, url);
+            Json(json!({ "error": format!("Request to ML service failed: {}", e) })).into_response()
+        }
     }
 }

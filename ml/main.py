@@ -138,27 +138,22 @@ async def predict_sign_score(req: ScoreSignRequest):
         import traceback
         traceback.print_exc()
         return JSONResponse({"error": str(e)}, status_code=500)
-
 @app.get("/health")
 def health():
-    print(f"DEBUG: BASE_DIR is {BASE_DIR}")
-    print(f"DEBUG: LANDMARKS_DIR is {LANDMARKS_DIR}")
-    
-    # Check if the data/landmarks directory even exists
     exists = os.path.exists(LANDMARKS_DIR)
-    print(f"DEBUG: LANDMARKS_DIR exists: {exists}")
-    
-    # List top level of data folder
-    data_contents = os.listdir(os.path.join(BASE_DIR, "data")) if os.path.exists(os.path.join(BASE_DIR, "data")) else []
-    print(f"DEBUG: Contents of data/ folder: {data_contents}")
-
     words = sorted([d for d in os.listdir(LANDMARKS_DIR) if os.path.isdir(os.path.join(LANDMARKS_DIR, d))]) if exists else []
-    print(f"DEBUG: Found {len(words)} word directories")
+
     # Only return mapping for words we actually have landmarks for
     active_mapping = {w: YOUTUBE_MAPPING[w] for w in words if w in YOUTUBE_MAPPING}
+
     return {
         "status": "ok", 
         "dtw_engine": "operational", 
+        "expert_vocabulary_banks_loaded": len(words), 
+        "available_words": words,
+        "youtube_mapping": active_mapping
+    }
+
         "expert_vocabulary_banks_loaded": len(words), 
         "available_words": words,
         "youtube_mapping": active_mapping
