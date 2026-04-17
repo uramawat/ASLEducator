@@ -10,7 +10,6 @@ from dtw_engine import compute_similarity
 app = FastAPI()
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-# We completely recycle the beautifully scraped reference data we extracted in Step 1!
 LANDMARKS_DIR = os.path.join(BASE_DIR, "data", "landmarks")
 JSON_PATH = os.path.join(BASE_DIR, "data", "WLASL_v0.3.json")
 
@@ -22,25 +21,20 @@ try:
             wlasl_data = json.load(f)
             for entry in wlasl_data:
                 gloss = entry['gloss'].lower()
-                # Find the first valid youtube link in instances
                 yt_url = None
                 for inst in entry['instances']:
                     url = inst['url']
                     if 'youtube' in url or 'youtu.be' in url:
-                        # Calculate timestamp: frame_start / fps
                         frame_start = inst.get('frame_start', 1)
                         fps = inst.get('fps', 25)
-                        # Ensure we don't start at 0 as it sometimes breaks ?t=
                         start_sec = max(0, int((frame_start - 1) / fps))
-                        
-                        # Add timestamp to URL
                         separator = '&' if '?' in url else '?'
                         yt_url = f"{url}{separator}t={start_sec}"
                         break
                 if yt_url:
                     YOUTUBE_MAPPING[gloss] = yt_url
 except Exception as e:
-    print(f"Error loading WLASL JSON for YouTube mapping: {e}")
+    print(f"Error loading WLASL JSON: {e}")
 
 class ScoreSignRequest(BaseModel):
     target_phrase: str
@@ -138,22 +132,15 @@ async def predict_sign_score(req: ScoreSignRequest):
         import traceback
         traceback.print_exc()
         return JSONResponse({"error": str(e)}, status_code=500)
+
 @app.get("/health")
 def health():
     exists = os.path.exists(LANDMARKS_DIR)
     words = sorted([d for d in os.listdir(LANDMARKS_DIR) if os.path.isdir(os.path.join(LANDMARKS_DIR, d))]) if exists else []
-
-    # Only return mapping for words we actually have landmarks for
     active_mapping = {w: YOUTUBE_MAPPING[w] for w in words if w in YOUTUBE_MAPPING}
-
     return {
         "status": "ok", 
         "dtw_engine": "operational", 
-        "expert_vocabulary_banks_loaded": len(words), 
-        "available_words": words,
-        "youtube_mapping": active_mapping
-    }
-
         "expert_vocabulary_banks_loaded": len(words), 
         "available_words": words,
         "youtube_mapping": active_mapping
