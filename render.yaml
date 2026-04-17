@@ -1,0 +1,44 @@
+services:
+  # 1. Python ML Microservice
+  - type: web
+    name: asl-ml-service
+    env: docker
+    repo: . # Uses the current repo
+    rootDir: ml
+    plan: starter # ML with TensorFlow requires at least 512MB-1GB RAM; Free tier may OOM
+    envVars:
+      - key: PORT
+        value: 8000
+
+  # 2. Rust Backend Gateway
+  - type: web
+    name: asl-backend-gateway
+    env: docker
+    repo: .
+    rootDir: backend
+    plan: starter
+    envVars:
+      - key: PORT
+        value: 3000
+      - key: DATABASE_URL
+        sync: false # You will paste your Supabase URL in the Render UI
+      - key: ML_SERVICE_URL
+        value: http://asl-ml-service:8000/predict # Internal networking
+      - key: CLERK_JWKS_URL
+        sync: false # You will paste your Clerk JWKS URL in the Render UI
+      - key: RUST_LOG
+        value: info
+
+  # 3. React Frontend (Static Site)
+  - type: static
+    name: asl-frontend
+    env: static
+    repo: .
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    publishDir: dist
+    envVars:
+      - key: VITE_API_URL
+        value: https://asl-backend-gateway.onrender.com # Change this to your actual backend URL after first deploy
+      - key: VITE_CLERK_PUBLISHABLE_KEY
+        sync: false
