@@ -8,9 +8,9 @@ services:
     envVars:
       - key: PORT
         value: 8000
-    ...
-    # 2. Rust Backend Gateway
-    - type: web
+
+  # 2. Rust Backend Gateway
+  - type: web
     name: asl-backend-gateway
     env: docker
     rootDir: backend
@@ -18,7 +18,6 @@ services:
     envVars:
       - key: PORT
         value: 3000
-
       - key: DATABASE_URL
         sync: false # You will paste your Supabase URL in the Render UI
       - key: ML_SERVICE_URL
