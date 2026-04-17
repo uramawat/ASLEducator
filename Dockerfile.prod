@@ -1,0 +1,45 @@
+# --- Stage 1: Build Rust Backend ---
+FROM rust:slim-bookworm as rust-builder
+WORKDIR /app
+RUN apt-get update && apt-get install -y pkg-config libssl-dev
+COPY backend/ .
+RUN cargo build --release
+
+# --- Stage 2: Final Production Image ---
+FROM python:3.11-slim-bookworm
+
+WORKDIR /app
+
+# Install system dependencies for OpenCV, MediaPipe, and CA certs
+RUN apt-get update && apt-get install -y \
+    libgl1 libglib2.0-0 ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+# We copy only the requirements first to leverage Docker cache
+COPY ml/pyproject.toml ml/uv.lock* ./
+RUN pip install --no-cache-dir \
+    fastapi uvicorn mediapipe==0.10.14 "numpy<2.0.0" \
+    opencv-python-headless pandas psycopg2-binary \
+    python-dotenv python-multipart requests "tensorflow==2.15.0" \
+    tqdm yt-dlp scikit-learn scipy fastdtw
+
+# Copy ML application code and data
+COPY ml/ .
+# Ensure landmarks data is baked into the image
+COPY ml/data /app/data
+
+# Copy Rust binary from builder
+COPY --from=rust-builder /app/target/release/backend .
+
+# Copy start script
+COPY start_prod.sh .
+
+# Ensure storage directory exists for the backend
+RUN mkdir -p storage/videos
+
+# The port Render will use is set via the $PORT env var
+EXPOSE 8000
+EXPOSE 3000
+
+CMD ["./start_prod.sh"]

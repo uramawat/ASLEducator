@@ -1,11 +1,35 @@
+import { useState, useEffect } from 'react';
+import axios from 'axios';
 import { useAuth, useUser, SignInButton, UserButton } from '@clerk/clerk-react';
 import { Educator } from './components/Educator';
-import { Loader2 } from 'lucide-react';
+import { VocabularyIndex } from './components/VocabularyIndex';
+import { StatsView } from './components/StatsView';
+import { Loader2, BookOpen, GraduationCap, BarChart3 } from 'lucide-react';
 import './App.css';
 
 function App() {
   const { isLoaded, isSignedIn } = useAuth();
   const { user } = useUser();
+  const [view, setView] = useState<'practice' | 'index' | 'stats'>('practice');
+  const [selectedPhrase, setSelectedPhrase] = useState<string | undefined>(undefined);
+  const [vocabulary, setVocabulary] = useState<string[]>([]);
+  const [youtubeMapping, setYoutubeMapping] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (isSignedIn) {
+      const fetchVocab = async () => {
+        try {
+          const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+          const res = await axios.get(`${apiUrl}/api/vocabulary`);
+          setVocabulary(res.data.available_words || []);
+          setYoutubeMapping(res.data.youtube_mapping || {});
+        } catch (err) {
+          console.error("Failed to fetch vocabulary", err);
+        }
+      };
+      fetchVocab();
+    }
+  }, [isSignedIn]);
 
   if (!isLoaded) {
     return (
@@ -42,16 +66,40 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white flex flex-col font-sans">
-      <header className="px-8 py-6 flex justify-between items-center border-b border-white/5 bg-gray-900/40 backdrop-blur-xl sticky top-0 z-50">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-emerald-500 flex items-center justify-center shadow-lg shadow-blue-500/20">
-            <span className="font-bold text-white text-sm">ASL</span>
+    <div className="min-h-screen bg-gray-950 text-white flex flex-col">
+      <header className="px-8 py-4 flex justify-between items-center border-b border-white/5 bg-gray-900/40 backdrop-blur-xl sticky top-0 z-50">
+        <div className="flex items-center gap-8">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-emerald-500 flex items-center justify-center shadow-lg shadow-blue-500/20">
+              <span className="font-bold text-white text-sm">ASL</span>
+            </div>
+            <h1 className="text-xl font-bold tracking-tight">Educator</h1>
           </div>
-          <h1 className="text-xl font-bold tracking-tight">Educator</h1>
+          
+          <nav className="hidden md:flex items-center gap-1 bg-white/5 p-1 rounded-xl border border-white/5">
+            <button 
+              onClick={() => setView('practice')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all cursor-pointer ${view === 'practice' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
+            >
+              <GraduationCap className="w-4 h-4" /> Practice
+            </button>
+            <button 
+              onClick={() => setView('index')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all cursor-pointer ${view === 'index' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
+            >
+              <BookOpen className="w-4 h-4" /> Vocabulary
+            </button>
+            <button 
+              onClick={() => setView('stats')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all cursor-pointer ${view === 'stats' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
+            >
+              <BarChart3 className="w-4 h-4" /> Stats
+            </button>
+          </nav>
         </div>
+
         <div className="flex items-center gap-6">
-          <div className="text-sm font-medium text-gray-400">
+          <div className="hidden sm:block text-sm font-medium text-gray-400">
             Welcome back, <span className="text-white font-semibold">{user?.firstName || 'Student'}</span>
           </div>
           <UserButton />
@@ -59,7 +107,27 @@ function App() {
       </header>
 
       <main className="flex-1 w-full flex flex-col items-center">
-        <Educator />
+        {view === 'practice' && (
+          <Educator 
+            onViewIndex={() => setView('index')} 
+            initialPhrase={selectedPhrase}
+            vocabulary={vocabulary}
+            youtubeMapping={youtubeMapping}
+          />
+        )}
+        {view === 'index' && (
+          <VocabularyIndex 
+            onBack={() => setView('practice')}
+            onSelect={(phrase) => {
+              setSelectedPhrase(phrase);
+              setView('practice');
+            }}
+            initialVocabulary={vocabulary}
+          />
+        )}
+        {view === 'stats' && (
+          <StatsView onBack={() => setView('practice')} />
+        )}
       </main>
     </div>
   );

@@ -1,31 +1,35 @@
 # Project State: ASLExperiment
 
 **Date:** 2026-03-27
-**Status:** Baseline implementation complete and committed.
+**Status:** Verification complete. Baseline implementation verified end-to-end.
 
 ## Accomplishments
 - **Architecture:** Established a three-tier microservices architecture (React Frontend, Rust Backend, Python ML Service).
 - **Frontend:**
   - Integrated Clerk for authentication.
   - Implemented `MediaPipeCanvas` for real-time landmark extraction (Pose, Face, Hands).
-  - Implemented `Educator` UI for sign practice and feedback visualization.
-  - **Refactor:** Updated `Educator.tsx` to use `VITE_API_URL` environment variable.
-  - **Refactor:** Unified recording logic in `MediaPipeCanvas` (removed auto-stop for manual control).
+  - Implemented `Educator` UI with multi-word sentence support and assessment visualization.
+  - **New:** Personalized Stats view with "Mastery" tracking and global accuracy percentile.
+  - **New:** Alphabetical Vocabulary Index for easy sign discovery.
 - **Backend:**
   - Rust/Axum server with routes for inference, feedback, and stats.
-  - Proxy logic to forward landmark data to the ML service.
-  - PostgreSQL integration for storing sign attempts and feedback.
+  - **New:** Personalized Statistics API filtered by Clerk `user_id`.
+  - **New:** Global percentile calculation for user accuracy benchmarking.
 - **ML:**
   - Python/FastAPI service using Dynamic Time Warping (DTW) for sign similarity scoring.
-  - Reference landmark dataset structure established.
-- **Orchestration:** Docker Compose configuration for local development.
-- **Source Control:** Initial baseline committed.
+  - **New:** Data-driven thresholding (EER ~0.126) for more accurate scoring.
+  - **New:** Whole-phrase gloss matching (e.g., "thank you") prioritized over sequential splitting.
+  - **New:** Sequential DTW Alignment for multi-word phrase recognition.
+  - **New:** Vocabulary expanded to top 550 WLASL words (493+ banks active).
+- **Orchestration:** Docker Compose configuration for local development, verified end-to-end.
 
 ## Current Goals
-- Verify the end-to-end flow using Docker.
+- Implement gamification (streaks, levels, XP).
+- Improve temporal segmentation for long sentences.
 
 ## Risks & Concerns
-- **Validation:** End-to-end flow has not been verified with the latest refactorings.
+- **ML Accuracy:** Sentence alignment uses a greedy sliding window; might need more robust temporal segmentation for long sentences.
 
 ## Next Steps
-1. **Validation:** Run `docker-compose up` and verify the full sign-practice-feedback cycle.
+1. **Data:** Add more reference landmarks to the `ml/data/landmarks` directory.
+2. **Stats:** Implement the logic for `api::stats::handler` to return real user progress.

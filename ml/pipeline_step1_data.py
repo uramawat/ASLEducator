@@ -113,23 +113,29 @@ def extract_landmarks(vocab_data):
                 
             cap = cv2.VideoCapture(video_path)
             
-            # Apply WLASL crop start frame
+            # Apply WLASL crop start/end frames
             start_frame = 1
+            end_frame = 999999
             if video_id in video_metadata:
                 start_frame = max(1, video_metadata[video_id].get('frame_start', 1))
+                end_frame = video_metadata[video_id].get('frame_end', -1)
+                if end_frame == -1: end_frame = 999999
                 
             if start_frame > 1:
                 cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame - 1)
 
             frames_landmarks = []
+            current_frame_idx = start_frame
             
             while cap.isOpened():
-                if len(frames_landmarks) >= MAX_FRAMES:
+                if len(frames_landmarks) >= MAX_FRAMES or current_frame_idx > end_frame:
                     break
                     
                 ret, frame = cap.read()
                 if not ret:
                     break
+                
+                current_frame_idx += 1
                     
                 # Convert BGR to RGB for MediaPipe
                 image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)

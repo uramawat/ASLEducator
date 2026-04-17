@@ -1,29 +1,43 @@
-# Environment variables
-.env
-.env.local
-.env.*.local
-
-# Dependency directories
-node_modules/
-target/
-
-# OS metadata
+# --- System / IDE ---
 .DS_Store
-
-# IDEs
 .vscode/
 .idea/
+*.swp
+*.log
+.gemini/
+.planning/
+STATE.md
 
-# --- ML & Data ---
-# Ignore raw WLASL videos and extracted landmarks
-ml/data/
+# --- Environment & Secrets (CRITICAL) ---
+.env
+.env.*
+!.env.example
+secrets.yaml
+*.pem
+*.key
 
-# Ignore user practice attempt recordings
-backend/storage/videos/
+# --- Backend (Rust) ---
+backend/target/
+backend/storage/videos/*
+!backend/storage/videos/.gitkeep
 
-# Ignore trained model binaries (often too big for Github)
-ml/models/
+# --- Frontend (Node/React) ---
+frontend/node_modules/
+frontend/dist/
+frontend/.next/
+frontend/build/
+frontend/npm-debug.log*
 
-# Ignore Python virtual environments
+# --- ML (Python) ---
+ml/__pycache__/
+ml/*.pyc
 ml/.venv/
-.venv/
+ml/.python-version
+ml/uv.lock
+ml/data/videos/*
+!ml/data/videos/.gitkeep
+# Keep landmarks because Render needs them baked into the image
+# But ignore raw video files to save GitHub space/bandwidth
+
+# --- Docker ---
+.docker-compose.persistence/

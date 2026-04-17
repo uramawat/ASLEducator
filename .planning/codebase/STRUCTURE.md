@@ -31,13 +31,13 @@ ASLExperiment/
 
 **`backend/src/api/`:**
 - Purpose: Logic for handling incoming REST requests.
-- Contains: Route handlers for inference, feedback, and statistics.
-- Key files: `backend/src/api/inference.rs`, `backend/src/api/feedback.rs`.
+- Contains: Route handlers for inference, feedback, statistics, and vocabulary lookup.
+- Key files: `backend/src/api/inference.rs`, `backend/src/api/feedback.rs`, `backend/src/api/vocabulary.rs`.
 
 **`frontend/src/components/`:**
 - Purpose: Encapsulated React components for the UI.
-- Contains: Camera capture logic, MediaPipe canvas drawing, and stats views.
-- Key files: `frontend/src/components/CameraRecorder.tsx`, `frontend/src/components/MediaPipeCanvas.tsx`.
+- Contains: Camera capture logic, MediaPipe canvas drawing, stats views, and vocabulary index.
+- Key files: `frontend/src/components/CameraRecorder.tsx`, `frontend/src/components/MediaPipeCanvas.tsx`, `frontend/src/components/VocabularyIndex.tsx`.
 
 **`ml/data/landmarks/`:**
 - Purpose: Pre-processed expert landmark data from the WLASL dataset.
@@ -59,6 +59,7 @@ ASLExperiment/
 
 **Core Logic:**
 - `ml/dtw_engine.py`: Sequence comparison algorithm.
+- `ml/tune_thresholds.py`: Statistical analysis tool for EER thresholding.
 - `backend/src/api/inference.rs`: Cross-service proxy logic.
 - `frontend/src/components/MediaPipeCanvas.tsx`: Landmark extraction logic.
 

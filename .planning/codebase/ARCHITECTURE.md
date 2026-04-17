@@ -10,6 +10,7 @@
 - **Decoupled Logic:** The ML inference (Python) is separated from the API and persistence layer (Rust).
 - **Client-Side Heavy Capture:** Video processing and landmark extraction happen in the browser using MediaPipe.
 - **Reference-Based Evaluation:** DTW (Dynamic Time Warping) is used to compare user landmarks against a pre-compiled dataset of expert signs (WLASL).
+- **Target Sentence Alignment (New):** For multi-word phrases, the ML service employs a sequential greedy sliding window. It segments the user's continuous capture by finding the optimal DTW match for each word in the requested order.
 
 ## Layers
 
@@ -30,7 +31,7 @@
 **ML Service (Inference Layer):**
 - Purpose: Performs the heavy lifting of signal processing and sequence comparison (DTW).
 - Location: `ml/`
-- Contains: FastAPI endpoints, DTW engine, and WLASL reference data loading.
+- Contains: FastAPI endpoints, DTW engine (with EER-based thresholding ~0.126), and WLASL reference data loading.
 - Depends on: Local reference landmarks (`ml/data/landmarks/*.npy`).
 - Used by: Backend.
 
@@ -46,12 +47,18 @@
 **Inference Flow:**
 
 1. **Frontend**: Captures webcam stream and extracts landmarks using MediaPipe.
-2. **Frontend**: Sends target word and landmark sequence to `POST /api/score_sign` on the Backend.
+2. **Frontend**: Sends target phrase (word or sentence) and landmark sequence to `POST /api/score_sign` on the Backend.
 3. **Backend**: Proxies the request to `POST /predict` on the ML Service.
-4. **ML Service**: Loads reference landmark sequences for the target word from `ml/data/landmarks/`.
-5. **ML Service**: Compares the user sequence against reference sequences using the DTW engine (`ml/dtw_engine.py`).
-6. **ML Service**: Returns a similarity score and qualitative feedback to the Backend.
-7. **Backend**: Returns the score and feedback to the Frontend.
+4. **ML Service**: Splits phrase into words. For each word, it searches for the best window in the remaining capture.
+5. **ML Service**: Returns a combined similarity score and per-word feedback to the Backend.
+6. **Backend**: Saves attempt to PostgreSQL (`target_phrase` column) and returns response to the Frontend.
+
+**Vocabulary Discovery Flow:**
+
+1. **Frontend**: Accesses `VocabularyIndex` component.
+2. **Backend**: Receives `GET /api/vocabulary` and proxies to ML Service `GET /health`.
+3. **ML Service**: Scans `data/landmarks` directory and returns a sorted list of available sign folders.
+4. **Frontend**: Displays alphabetical index grouped by letter.
 
 **Feedback Flow:**
 

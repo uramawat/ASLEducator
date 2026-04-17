@@ -12,6 +12,7 @@ use tower_http::cors::CorsLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 mod api;
+mod auth;
 
 #[tokio::main]
 async fn main() {
@@ -46,6 +47,7 @@ async fn main() {
         .route("/api/score_sign", post(api::inference::handler))
         .route("/api/feedback", post(api::feedback::handler))
         .route("/api/stats", get(api::stats::handler))
+        .route("/api/vocabulary", get(api::vocabulary::handler))
         .with_state(pool)
         .layer(DefaultBodyLimit::max(1024 * 1024 * 50)) // 50 MB limit for massive coordinate tensors
         .layer(
@@ -55,7 +57,12 @@ async fn main() {
                 .layer(GovernorLayer { config: ip_conf })
         );
 
-    let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
+    let port = std::env::var("PORT")
+        .unwrap_or_else(|_| "3000".to_string())
+        .parse::<u16>()
+        .unwrap_or(3000);
+
+    let addr = SocketAddr::from(([0, 0, 0, 0], port));
     tracing::info!("listening on {}", addr);
     
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();

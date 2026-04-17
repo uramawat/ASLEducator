@@ -69,16 +69,19 @@ def compute_similarity(user_sequence: list, reference_sequence: list) -> float:
         avg_cosine_gap = distance / len(path)
         print(f"DEBUG DTW: Distance {distance:.2f}, Path {len(path)}, Avg Gap: {avg_cosine_gap:.6f}")
         
-        # EXPERT vs EXPERT gap for the SAME word: ~0.19
-        # EXPERT vs EXPERT gap for DIFFERENT word: ~0.44
-        # We apply an aggressive offset multiplier to completely separate organic variance from failure.
-        offset = max(0.0, avg_cosine_gap - 0.10)
-        raw_score = 100.0 - (offset * 300.0)
+        # STATISTICAL THRESHOLDING (Empirically derived via tune_thresholds.py)
+        # EER (Equal Error Rate) threshold is ~0.126
+        # We want a 100.0 score when the gap is near the positive median (~0.10).
+        # We want a < 50 score when the gap approaches the negative median (~0.15).
+        
+        threshold = 0.126
+        offset = max(0.0, avg_cosine_gap - (threshold * 0.5)) # Offset starts below the positive median
+        raw_score = 100.0 * (1.0 - (offset / threshold))
         score = max(0.0, min(100.0, raw_score))
         
-        # UI Polish
-        if score > 20:
-            score += 20
+        # UI Polish: If it's reasonably good, give it a small boost to feel encouraging
+        if score > 30:
+            score += 15
             
         return min(100.0, score)
     except Exception as e:
