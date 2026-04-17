@@ -13,7 +13,6 @@ services:
   - type: web
     name: asl-backend-gateway
     env: docker
-    repo: .
     rootDir: backend
     plan: starter
     envVars:
@@ -26,5 +25,4 @@ services:
       - key: CLERK_JWKS_URL
         sync: false # You will paste your Clerk JWKS URL in the Render UI
       - key: RUST_LOG
-        value: info_LOG
         value: info
