@@ -41,3 +41,11 @@ ml/data/videos/*
 
 # --- Docker ---
 .docker-compose.persistence/
+
+# Landmarks Data (Moved to Cloudflare R2)
+ml/data/landmarks/
+*.npy
+*.mp4
+*.avi
+ml/data/videos/
+backend/storage/videos/
