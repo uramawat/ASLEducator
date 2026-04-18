@@ -21,7 +21,7 @@ services:
       - key: DATABASE_URL
         sync: false # You will paste your Supabase URL in the Render UI
       - key: ML_SERVICE_URL
-        value: http://asl-ml-service:8000/predict # Internal networking
+        value: https://asl-ml-service.onrender.com/predict # Using Public URL for reliability
       - key: CLERK_JWKS_URL
         sync: false # You will paste your Clerk JWKS URL in the Render UI
       - key: RUST_LOG
