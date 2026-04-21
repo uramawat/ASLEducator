@@ -19,24 +19,29 @@ function App() {
 
   useEffect(() => {
     if (isSignedIn) {
-      const fetchVocab = async () => {
-        // Set a timer to show "Waking up" message if backend takes > 3s
+      const fetchVocab = async (retries = 3) => {
         const wakeupTimer = setTimeout(() => {
           setIsWakingUp(true);
         }, 3000);
 
         try {
-          const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-          console.log("Fetching vocabulary from:", `${apiUrl}/api/vocabulary`);
+          const apiUrl = import.meta.env.VITE_API_URL || 'https://asl-backend-gateway.onrender.com';
           const res = await axios.get(`${apiUrl}/api/vocabulary`);
           setVocabulary(res.data.available_words || []);
           setYoutubeMapping(res.data.youtube_mapping || {});
-        } catch (err) {
-          console.error("Failed to fetch vocabulary", err);
-        } finally {
-          clearTimeout(wakeupTimer);
           setIsWakingUp(false);
           setIsInitialLoading(false);
+        } catch (err) {
+          console.error(`Failed to fetch vocabulary, ${retries} retries left`, err);
+          if (retries > 0) {
+            // Wait 5 seconds before retrying to give Render time to wake up
+            setTimeout(() => fetchVocab(retries - 1), 5000);
+          } else {
+            setIsWakingUp(false);
+            setIsInitialLoading(false);
+          }
+        } finally {
+          clearTimeout(wakeupTimer);
         }
       };
       fetchVocab();
