@@ -100,16 +100,16 @@ function App() {
         </div>
       )}
 
-      <header className="px-8 py-4 flex justify-between items-center border-b border-white/5 bg-gray-900/40 backdrop-blur-xl sticky top-0 z-50">
-        <div className="flex items-center gap-8">
+      <header className="px-4 sm:px-8 py-4 flex justify-between items-center border-b border-white/5 bg-gray-900/40 backdrop-blur-xl sticky top-0 z-50">
+        <div className="flex items-center gap-4 sm:gap-8">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-emerald-500 flex items-center justify-center shadow-lg shadow-blue-500/20">
               <span className="font-bold text-white text-sm">ASL</span>
             </div>
-            <h1 className="text-xl font-bold tracking-tight">Educator</h1>
+            <h1 className="text-xl font-bold tracking-tight hidden xs:block">Educator</h1>
           </div>
           
-          <nav className="hidden md:flex items-center gap-1 bg-white/5 p-1 rounded-xl border border-white/5">
+          <nav className="hidden lg:flex items-center gap-1 bg-white/5 p-1 rounded-xl border border-white/5">
             <button 
               onClick={() => setView('practice')}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all cursor-pointer ${view === 'practice' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
@@ -131,7 +131,7 @@ function App() {
           </nav>
         </div>
 
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-4 sm:gap-6">
           <div className="hidden sm:block text-sm font-medium text-gray-400">
             Welcome back, <span className="text-white font-semibold">{user?.firstName || 'Student'}</span>
           </div>
@@ -139,7 +139,7 @@ function App() {
         </div>
       </header>
 
-      <main className="flex-1 w-full flex flex-col items-center">
+      <main className="flex-1 w-full flex flex-col items-center pb-24 lg:pb-0">
         {view === 'practice' && (
           <Educator 
             onViewIndex={() => setView('index')} 
@@ -162,6 +162,31 @@ function App() {
           <StatsView onBack={() => setView('practice')} />
         )}
       </main>
+
+      {/* Mobile Bottom Navigation */}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-gray-900/80 backdrop-blur-2xl border-t border-white/5 px-6 py-3 flex justify-around items-center">
+        <button 
+          onClick={() => setView('practice')}
+          className={`flex flex-col items-center gap-1 transition-all ${view === 'practice' ? 'text-blue-500 scale-110' : 'text-gray-500 hover:text-gray-300'}`}
+        >
+          <GraduationCap className="w-6 h-6" />
+          <span className="text-[10px] font-bold uppercase tracking-widest">Practice</span>
+        </button>
+        <button 
+          onClick={() => setView('index')}
+          className={`flex flex-col items-center gap-1 transition-all ${view === 'index' ? 'text-blue-500 scale-110' : 'text-gray-500 hover:text-gray-300'}`}
+        >
+          <BookOpen className="w-6 h-6" />
+          <span className="text-[10px] font-bold uppercase tracking-widest">Vocab</span>
+        </button>
+        <button 
+          onClick={() => setView('stats')}
+          className={`flex flex-col items-center gap-1 transition-all ${view === 'stats' ? 'text-blue-500 scale-110' : 'text-gray-500 hover:text-gray-300'}`}
+        >
+          <BarChart3 className="w-6 h-6" />
+          <span className="text-[10px] font-bold uppercase tracking-widest">Stats</span>
+        </button>
+      </nav>
     </div>
   );
 }
