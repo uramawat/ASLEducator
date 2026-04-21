@@ -144,7 +144,10 @@ def health():
         words = set()
         for result in paginator.paginate(Bucket=R2_BUCKET_NAME, Delimiter='/'):
             for prefix in result.get('CommonPrefixes', []):
-                words.add(prefix.get('Prefix').strip('/'))
+                word = prefix.get('Prefix').strip('/')
+                # Filter out hidden folders or empty strings
+                if word and not word.startswith('.'):
+                    words.add(word)
         
         sorted_words = sorted(list(words))
         active_mapping = {w: YOUTUBE_MAPPING[w] for w in sorted_words if w in YOUTUBE_MAPPING}
