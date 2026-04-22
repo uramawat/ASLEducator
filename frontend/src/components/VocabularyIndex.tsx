@@ -18,7 +18,8 @@ export function VocabularyIndex({ onSelect, onBack, initialVocabulary }: Props) 
     const fetchVocab = async () => {
       setLoading(true);
       try {
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+        const isLocal = window.location.hostname === 'localhost';
+        const apiUrl = import.meta.env.VITE_API_URL || (isLocal ? 'http://localhost:3000' : 'https://asl-backend-gateway.onrender.com');
         const res = await axios.get(`${apiUrl}/api/vocabulary`);
         setWords(res.data.available_words || []);
       } catch (err) {

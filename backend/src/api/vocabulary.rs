@@ -12,7 +12,7 @@ pub async fn handler() -> impl IntoResponse {
     tracing::info!("DEBUG: Fetching vocabulary from: {}", url);
     
     let client = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(300)) // Increased to 5 mins for safety
+        .timeout(std::time::Duration::from_secs(30)) // Professional 30s timeout
         .build()
         .unwrap();
         

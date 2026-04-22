@@ -14,34 +14,21 @@ function App() {
   const [selectedPhrase, setSelectedPhrase] = useState<string | undefined>(undefined);
   const [vocabulary, setVocabulary] = useState<string[]>([]);
   const [youtubeMapping, setYoutubeMapping] = useState<Record<string, string>>({});
-  const [isWakingUp, setIsWakingUp] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
 
   useEffect(() => {
     if (isSignedIn) {
-      const fetchVocab = async (retries = 3) => {
-        const wakeupTimer = setTimeout(() => {
-          setIsWakingUp(true);
-        }, 3000);
-
+      const fetchVocab = async () => {
         try {
-          const apiUrl = import.meta.env.VITE_API_URL || 'https://asl-backend-gateway.onrender.com';
+          const isLocal = window.location.hostname === 'localhost';
+          const apiUrl = import.meta.env.VITE_API_URL || (isLocal ? 'http://localhost:3000' : 'https://asl-backend-gateway.onrender.com');
           const res = await axios.get(`${apiUrl}/api/vocabulary`);
           setVocabulary(res.data.available_words || []);
           setYoutubeMapping(res.data.youtube_mapping || {});
-          setIsWakingUp(false);
-          setIsInitialLoading(false);
         } catch (err) {
-          console.error(`Failed to fetch vocabulary, ${retries} retries left`, err);
-          if (retries > 0) {
-            // Wait 5 seconds before retrying to give Render time to wake up
-            setTimeout(() => fetchVocab(retries - 1), 5000);
-          } else {
-            setIsWakingUp(false);
-            setIsInitialLoading(false);
-          }
+          console.error("Failed to fetch vocabulary", err);
         } finally {
-          clearTimeout(wakeupTimer);
+          setIsInitialLoading(false);
         }
       };
       fetchVocab();
@@ -84,19 +71,12 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-950 text-white flex flex-col relative">
-      {/* Cold Start Overlay */}
+      {/* Loading Overlay */}
       {isInitialLoading && (
         <div className="absolute inset-0 z-[100] bg-gray-950/80 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center">
           <Loader2 className="w-12 h-12 text-blue-500 animate-spin mb-6" />
-          <h2 className="text-2xl font-bold mb-2">Connecting to AI Services...</h2>
-          {isWakingUp && (
-            <p className="text-blue-400 font-medium animate-pulse max-w-md">
-              Render Free Tier is waking up the backend containers. This can take up to 60 seconds...
-            </p>
-          )}
-          {!isWakingUp && (
-            <p className="text-gray-400">Loading your vocabulary bank...</p>
-          )}
+          <h2 className="text-2xl font-bold mb-2">Loading ASL Educator...</h2>
+          <p className="text-gray-400">Syncing with AI Services</p>
         </div>
       )}
 
