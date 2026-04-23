@@ -11,14 +11,15 @@ ASL Educator is a production-grade American Sign Language learning platform that
 The application is split into four specialized services for maximum scalability and performance.
 
 ### 1. Frontend (Vercel)
-*   **Tech Stack:** React 19, TypeScript, Vite, Tailwind CSS.
+*   **Tech Stack:** React 19, TypeScript, Vite, Tailwind CSS, **Clerk**.
+*   **User Management:** Secure account management and authentication via **Clerk Provider**.
 *   **AI Edge:** Uses **MediaPipe Holistic** in the browser to extract 1,662 3D landmarks (Face, Hands, Pose) from the user's webcam at 30fps.
 *   **Mobile Optimized:** Features a responsive navigation system and touch-friendly interface for mobile learning.
 
 ### 2. Backend Gateway (Render - Rust)
 *   **Instance:** Starter Tier (Always-On).
 *   **Tech Stack:** Rust (Axum), Tokio, SQLx.
-*   **Role:** Secure orchestrator. Validates Clerk JWTs, manages user statistics in Supabase, and proxies requests to the ML engine.
+*   **Role:** Secure orchestrator. Validates **Clerk JWTs** for authenticated requests, manages user statistics in Supabase, and proxies requests to the ML engine.
 
 ### 3. ML Inference Engine (Render - Python)
 *   **Instance:** Starter Tier (Always-On).
