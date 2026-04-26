@@ -1,6 +1,7 @@
 import React, { useRef, useState, useCallback } from "react";
 import Webcam from "react-webcam";
 import { Video, StopCircle, RefreshCw } from "lucide-react";
+import posthog from "posthog-js";
 
 interface CameraRecorderProps {
     onRecordComplete: (videoBlob: Blob) => void;
@@ -13,6 +14,11 @@ export const CameraRecorder: React.FC<CameraRecorderProps> = ({ onRecordComplete
     const [capturing, setCapturing] = useState(false);
     const [recordedChunks, setRecordedChunks] = useState<Blob[]>([]);
     const [progress, setProgress] = useState(0);
+
+    const onUserMediaError = useCallback((error: string | DOMException) => {
+        console.error("Camera access denied:", error);
+        posthog.capture("camera_access_denied", { error: error.toString() });
+    }, []);
 
     const handleStartCaptureClick = useCallback(() => {
         setCapturing(true);
@@ -78,6 +84,7 @@ export const CameraRecorder: React.FC<CameraRecorderProps> = ({ onRecordComplete
                     audio={false}
                     ref={webcamRef}
                     screenshotFormat="image/jpeg"
+                    onUserMediaError={onUserMediaError}
                     className="w-[640px] h-[480px] object-cover"
                 />
                 {capturing && (

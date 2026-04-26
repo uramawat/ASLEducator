@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { Search, Loader2, ArrowLeft } from 'lucide-react';
+import posthog from 'posthog-js';
 
 interface Props {
   onSelect: (phrase: string) => void;
@@ -13,6 +14,27 @@ export function VocabularyIndex({ onSelect, onBack, initialVocabulary }: Props) 
   const [loading, setLoading] = useState(!initialVocabulary || initialVocabulary.length === 0);
   const [search, setSearch] = useState('');
   const [forceFetch, setForceFetch] = useState(0);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    if (search.trim().length > 2) {
+      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+      
+      searchTimeoutRef.current = setTimeout(() => {
+        const filtered = words.filter(w => w.toLowerCase().includes(search.toLowerCase()));
+        if (filtered.length === 0) {
+          posthog.capture("vocabulary_search", { 
+            query: search, 
+            has_results: false 
+          });
+        }
+      }, 1000);
+    }
+    
+    return () => {
+      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    };
+  }, [search, words]);
 
   useEffect(() => {
     const fetchVocab = async () => {

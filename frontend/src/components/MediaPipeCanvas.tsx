@@ -3,6 +3,7 @@ import { Holistic, HAND_CONNECTIONS, POSE_CONNECTIONS } from '@mediapipe/holisti
 import type { Results as HolisticResults } from '@mediapipe/holistic';
 import { Camera } from '@mediapipe/camera_utils';
 import { drawConnectors, drawLandmarks } from '@mediapipe/drawing_utils';
+import posthog from 'posthog-js';
 
 interface Props {
   onReady: () => void;
@@ -75,6 +76,9 @@ export const MediaPipeCanvas = forwardRef<MediaPipeCanvasRef, Props>(({ onReady,
       });
       camera.start().then(() => {
          onReady();
+      }).catch((err) => {
+         console.error("Failed to start MediaPipe camera:", err);
+         posthog.capture("ml_model_load_failed", { error: err.toString(), stage: "camera_start" });
       });
       cameraRef.current = camera;
     }

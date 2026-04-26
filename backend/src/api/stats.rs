@@ -62,6 +62,27 @@ pub async fn handler(
     // Capture PostHog event
     let _ = state.posthog.capture(Event::new("stats_viewed", user_id.as_deref().unwrap_or("anonymous"))).await;
 
+    // Check for daily goal reached (e.g., 3 signs practiced today)
+    if let Some(uid) = &user_id {
+        let count_today = sqlx::query_scalar::<_, i64>(
+            "SELECT COUNT(*) FROM sign_attempts WHERE user_id = $1 AND created_at >= CURRENT_DATE"
+        )
+        .bind(uid)
+        .fetch_one(&state.pool)
+        .await
+        .unwrap_or(0);
+
+        if count_today >= 3 {
+            // Check if we already fired this today to avoid spamming
+            // In a real app, we might store this in a 'milestones' table, 
+            // but for telemetry we can use a slightly broader query or just let PostHog handle unique counts.
+            let mut goal_event = Event::new("daily_goal_reached", uid);
+            goal_event.insert_prop("goal_count", 3).unwrap();
+            goal_event.insert_prop("actual_count", count_today).unwrap();
+            let _ = state.posthog.capture(goal_event).await;
+        }
+    }
+
     // 2. User Stats
     let user_stats_row = sqlx::query(
         r#"

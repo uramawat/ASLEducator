@@ -60,6 +60,11 @@ pub async fn handler(
             let raw_text = response.text().await.unwrap_or_default();
             
             if !status.is_success() {
+                let mut fail_event = Event::new("inference_failed", &distinct_id);
+                fail_event.insert_prop("error", &raw_text).unwrap();
+                fail_event.insert_prop("status", status.as_u16()).unwrap();
+                let _ = state.posthog.capture(fail_event).await;
+
                 return Json(json!({ 
                     "error": format!("DTW Engine Error ({}): {}", status, raw_text) 
                 })).into_response();
@@ -90,11 +95,40 @@ pub async fn handler(
                 done_event.insert_prop("similarity_score", score).unwrap();
                 let _ = state.posthog.capture(done_event).await;
 
+                // Capture sign_mastered if score >= 90 and it's the first time
+                if score >= 90.0 {
+                    if let Some(uid) = &user_id {
+                        let prev_high_score = sqlx::query_scalar::<_, f64>(
+                            "SELECT MAX(similarity_score) FROM sign_attempts WHERE user_id = $1 AND target_phrase = $2 AND created_at < NOW()"
+                        )
+                        .bind(uid)
+                        .bind(&target)
+                        .fetch_optional(&state.pool)
+                        .await
+                        .unwrap_or(None);
+
+                        if prev_high_score.unwrap_or(0.0) < 90.0 {
+                            let mut master_event = Event::new("sign_mastered", uid);
+                            master_event.insert_prop("target_phrase", &target).unwrap();
+                            master_event.insert_prop("score", score).unwrap();
+                            let _ = state.posthog.capture(master_event).await;
+                        }
+                    }
+                }
+
                 Json(json_res).into_response()
             } else {
+                let mut parse_fail = Event::new("inference_failed", &distinct_id);
+                parse_fail.insert_prop("error", "JSON parsing failed").unwrap();
+                let _ = state.posthog.capture(parse_fail).await;
                 Json(json!({ "error": "Failed to parse DTW response" })).into_response()
             }
         },
-        Err(e) => Json(json!({ "error": format!("Request to DTW engine failed: {}", e) })).into_response()
+        Err(e) => {
+            let mut req_fail = Event::new("inference_failed", &distinct_id);
+            req_fail.insert_prop("error", e.to_string()).unwrap();
+            let _ = state.posthog.capture(req_fail).await;
+            Json(json!({ "error": format!("Request to DTW engine failed: {}", e) })).into_response()
+        }
     }
 }
