@@ -4,7 +4,9 @@ use axum::{
     http::HeaderMap,
 };
 use serde::{Serialize};
-use sqlx::{PgPool, Row};
+use sqlx::{Row};
+use crate::AppState;
+use posthog_rs::Event;
 
 #[derive(Serialize, Debug, sqlx::FromRow)]
 pub struct StatItem {
@@ -22,7 +24,7 @@ pub struct StatsResponse {
 }
 
 pub async fn handler(
-    State(pool): State<PgPool>,
+    State(state): State<AppState>,
     headers: HeaderMap,
 ) -> Json<StatsResponse> {
     // 1. Verify Clerk JWT
@@ -57,6 +59,9 @@ pub async fn handler(
         }
     };
 
+    // Capture PostHog event
+    let _ = state.posthog.capture(Event::new("stats_viewed", user_id.as_deref().unwrap_or("anonymous"))).await;
+
     // 2. User Stats
     let user_stats_row = sqlx::query(
         r#"
@@ -69,7 +74,7 @@ pub async fn handler(
         "#
     )
     .bind(&user_id)
-    .fetch_one(&pool)
+    .fetch_one(&state.pool)
     .await;
 
     let (total_attempts, avg_accuracy, mastered_count) = match user_stats_row {
@@ -96,7 +101,7 @@ pub async fn handler(
         "#
     )
     .bind(avg_accuracy)
-    .fetch_one(&pool)
+    .fetch_one(&state.pool)
     .await;
 
     let percentile_val = match percentile_row {
@@ -119,7 +124,7 @@ pub async fn handler(
         "#
     )
     .bind(&user_id)
-    .fetch_all(&pool)
+    .fetch_all(&state.pool)
     .await;
 
     let distribution = match distribution {

@@ -1,8 +1,10 @@
 use axum::{Json, extract::State};
 use serde::{Deserialize};
 use serde_json::{json, Value};
-use sqlx::{PgPool, types::ipnetwork::IpNetwork};
+use sqlx::{types::ipnetwork::IpNetwork};
 use axum_client_ip::InsecureClientIp;
+use crate::AppState;
+use posthog_rs::Event;
 
 #[derive(Deserialize, Debug)]
 pub struct FeedbackRequest {
@@ -14,7 +16,7 @@ pub struct FeedbackRequest {
 }
 
 pub async fn handler(
-    State(pool): State<PgPool>,
+    State(state): State<AppState>,
     InsecureClientIp(ip): InsecureClientIp,
     Json(payload): Json<FeedbackRequest>,
 ) -> Json<Value> {
@@ -38,8 +40,16 @@ pub async fn handler(
     .bind(payload.is_correct)
     .bind(IpNetwork::from(ip))
     .bind(video_uuid)
-    .fetch_one(&pool)
+    .fetch_one(&state.pool)
     .await;
+
+    // Capture PostHog event
+    let mut event = Event::new("feedback_submitted", &ip.to_string());
+    event.insert_prop("is_correct", payload.is_correct).unwrap();
+    if let Some(ref corrected) = payload.user_correction {
+        event.insert_prop("user_correction", corrected).unwrap();
+    }
+    let _ = state.posthog.capture(event).await;
 
     match result {
         Ok(id) => Json(json!({ "status": "success", "id": id })),

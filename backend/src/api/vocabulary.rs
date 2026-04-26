@@ -1,15 +1,23 @@
 use axum::{
     Json,
     response::IntoResponse,
+    extract::State,
 };
 use serde_json::{json, Value};
+use crate::AppState;
+use posthog_rs::Event;
 
-pub async fn handler() -> impl IntoResponse {
+pub async fn handler(
+    State(state): State<AppState>,
+) -> impl IntoResponse {
     let url = std::env::var("ML_SERVICE_URL")
         .unwrap_or_else(|_| "http://ml:8000/predict".to_string())
         .replace("/predict", "/health");
     
     tracing::info!("DEBUG: Fetching vocabulary from: {}", url);
+
+    // Capture PostHog event
+    let _ = state.posthog.capture(Event::new("vocabulary_viewed", "anonymous")).await;
     
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(30)) // Professional 30s timeout

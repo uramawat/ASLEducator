@@ -5,7 +5,8 @@ use axum::{
     extract::State,
 };
 use serde_json::{json, Value};
-use sqlx::PgPool;
+use crate::AppState;
+use posthog_rs::Event;
 
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
 pub struct ScoreSignRequest {
@@ -14,7 +15,7 @@ pub struct ScoreSignRequest {
 }
 
 pub async fn handler(
-    State(pool): State<PgPool>,
+    State(state): State<AppState>,
     headers: HeaderMap,
     Json(payload): Json<ScoreSignRequest>,
 ) -> impl IntoResponse {
@@ -39,6 +40,13 @@ pub async fn handler(
     };
     
     tracing::info!("Received score request for phrase: {}, frames: {}, user: {:?}", target, payload.landmarks.len(), user_id);
+
+    // Capture PostHog event
+    let distinct_id = user_id.clone().unwrap_or_else(|| "anonymous".to_string());
+    let mut event = Event::new("inference_requested", &distinct_id);
+    event.insert_prop("target_phrase", &target).unwrap();
+    event.insert_prop("frame_count", payload.landmarks.len()).unwrap();
+    let _ = state.posthog.capture(event).await;
 
     // 2. Call local Python DTW Microservice
     let url = std::env::var("ML_SERVICE_URL").unwrap_or_else(|_| "http://ml:8000/predict".to_string());
@@ -71,10 +79,16 @@ pub async fn handler(
                 )
                 .bind(&target)
                 .bind(score)
-                .bind(user_id)
+                .bind(&user_id)
                 .bind(&Vec::<String>::new()) // Placeholder for candidates
-                .execute(&pool)
+                .execute(&state.pool)
                 .await;
+
+                // Capture completion event
+                let mut done_event = Event::new("inference_completed", &distinct_id);
+                done_event.insert_prop("target_phrase", &target).unwrap();
+                done_event.insert_prop("similarity_score", score).unwrap();
+                let _ = state.posthog.capture(done_event).await;
 
                 Json(json_res).into_response()
             } else {

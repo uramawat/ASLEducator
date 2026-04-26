@@ -14,6 +14,12 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 mod api;
 mod auth;
 
+#[derive(Clone)]
+pub struct AppState {
+    pub pool: sqlx::PgPool,
+    pub posthog: Arc<posthog_rs::Client>,
+}
+
 #[tokio::main]
 async fn main() {
     dotenv().ok();
@@ -26,7 +32,11 @@ async fn main() {
         .with(tracing_subscriber::fmt::layer())
         .init();
 
-    // 1. Per-IP Limit: Burst 5, Refill 1 every 10 seconds.
+    // 1. PostHog Client
+    let ph_key = std::env::var("POSTHOG_API_KEY").expect("POSTHOG_API_KEY must be set");
+    let posthog = Arc::new(posthog_rs::client(ph_key.as_str()).await);
+
+    // 2. Per-IP Limit: Burst 5, Refill 1 every 10 seconds.
     // This isn't a perfect "daily quota", but it prevents abuse/loops.
     // 6 request burst, then 1 per 10s.
     let ip_conf = Arc::new(GovernorConfigBuilder::default()
@@ -42,13 +52,18 @@ async fn main() {
     let db_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
     let pool = sqlx::PgPool::connect(&db_url).await.expect("Failed to connect to DB");
 
+    let state = AppState {
+        pool,
+        posthog,
+    };
+
     let app = Router::new()
         .route("/", get(|| async { "ASLExperiment Backend API" }))
         .route("/api/score_sign", post(api::inference::handler))
         .route("/api/feedback", post(api::feedback::handler))
         .route("/api/stats", get(api::stats::handler))
         .route("/api/vocabulary", get(api::vocabulary::handler))
-        .with_state(pool)
+        .with_state(state)
         .layer(DefaultBodyLimit::max(1024 * 1024 * 50)) // 50 MB limit for massive coordinate tensors
         .layer(
             ServiceBuilder::new()
