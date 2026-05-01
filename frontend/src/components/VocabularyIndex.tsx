@@ -22,12 +22,11 @@ export function VocabularyIndex({ onSelect, onBack, initialVocabulary }: Props) 
       
       searchTimeoutRef.current = setTimeout(() => {
         const filtered = words.filter(w => w.toLowerCase().includes(search.toLowerCase()));
-        if (filtered.length === 0) {
-          posthog.capture("vocabulary_search", { 
-            query: search, 
-            has_results: false 
-          });
-        }
+        posthog.capture("vocabulary_search", { 
+          query: search, 
+          results_count: filtered.length,
+          has_results: filtered.length > 0 
+        });
       }, 1000);
     }
     

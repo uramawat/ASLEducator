@@ -3,6 +3,7 @@ import { MediaPipeCanvas } from './MediaPipeCanvas';
 import type { MediaPipeCanvasRef } from './MediaPipeCanvas';
 import axios from 'axios';
 import { useAuth } from '@clerk/clerk-react';
+import posthog from 'posthog-js';
 import { Play, RotateCcw, Award, Loader2, Square, AlertCircle, Search, Youtube, ExternalLink } from 'lucide-react';
 
 interface Props {
@@ -59,6 +60,12 @@ export function Educator({ onViewIndex, initialPhrase, vocabulary = [], youtubeM
       console.log(`Sending payload to ${apiUrl}/api/score_sign`);
       console.log(`Payload frames size: ${landmarksTimeline.length}`);
 
+      posthog.capture("inference_requested", {
+        target_phrase: targetPhrase,
+        frame_count: landmarksTimeline.length,
+        source: "frontend"
+      });
+
       const res = await axios.post(
         `${apiUrl}/api/score_sign`,
         payload,
@@ -76,6 +83,13 @@ export function Educator({ onViewIndex, initialPhrase, vocabulary = [], youtubeM
       if (err.response && err.response.data && err.response.data.error) {
           errorMsg = err.response.data.error;
       }
+
+      posthog.capture("inference_failed", {
+        target_phrase: targetPhrase,
+        error: errorMsg,
+        source: "frontend",
+        status: err.response?.status
+      });
       
       setNetworkError(`Backend Routing Error: ${errorMsg}`);
       setFeedback('The browser failed to communicate with the Rust backend on port 3000. Check Developer Console for strictly printed axios crash logs.');

@@ -42,10 +42,12 @@ pub async fn handler(
     tracing::info!("Received score request for phrase: {}, frames: {}, user: {:?}", target, payload.landmarks.len(), user_id);
 
     // Capture PostHog event
+    let start_time = std::time::Instant::now();
     let distinct_id = user_id.clone().unwrap_or_else(|| "anonymous".to_string());
     let mut event = Event::new("inference_requested", &distinct_id);
     event.insert_prop("target_phrase", &target).unwrap();
     event.insert_prop("frame_count", payload.landmarks.len()).unwrap();
+    event.insert_prop("source", "backend").unwrap();
     let _ = state.posthog.capture(event).await;
 
     // 2. Call local Python DTW Microservice
@@ -63,6 +65,7 @@ pub async fn handler(
                 let mut fail_event = Event::new("inference_failed", &distinct_id);
                 fail_event.insert_prop("error", &raw_text).unwrap();
                 fail_event.insert_prop("status", status.as_u16()).unwrap();
+                fail_event.insert_prop("source", "backend").unwrap();
                 let _ = state.posthog.capture(fail_event).await;
 
                 return Json(json!({ 
@@ -93,6 +96,8 @@ pub async fn handler(
                 let mut done_event = Event::new("inference_completed", &distinct_id);
                 done_event.insert_prop("target_phrase", &target).unwrap();
                 done_event.insert_prop("similarity_score", score).unwrap();
+                done_event.insert_prop("latency_ms", start_time.elapsed().as_millis() as u64).unwrap();
+                done_event.insert_prop("source", "backend").unwrap();
                 let _ = state.posthog.capture(done_event).await;
 
                 // Capture sign_mastered if score >= 90 and it's the first time
