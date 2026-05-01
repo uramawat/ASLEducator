@@ -16,21 +16,28 @@ function App() {
   const [youtubeMapping, setYoutubeMapping] = useState<Record<string, string>>({});
   const [isInitialLoading, setIsInitialLoading] = useState(true);
 
+  const fetchVocab = async () => {
+    setIsInitialLoading(true);
+    try {
+      const isLocal = window.location.hostname === 'localhost';
+      const apiUrl = import.meta.env.VITE_API_URL || (isLocal ? 'http://localhost:3000' : 'https://asl-backend-gateway.onrender.com');
+      const res = await axios.get(`${apiUrl}/api/vocabulary`);
+      
+      const words = res.data.available_words || [];
+      const mapping = res.data.youtube_mapping || {};
+      
+      setVocabulary(words);
+      setYoutubeMapping(mapping);
+      console.log(`Sync complete: ${words.length} words, ${Object.keys(mapping).length} YT links`);
+    } catch (err) {
+      console.error("Failed to fetch vocabulary", err);
+    } finally {
+      setIsInitialLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (isSignedIn) {
-      const fetchVocab = async () => {
-        try {
-          const isLocal = window.location.hostname === 'localhost';
-          const apiUrl = import.meta.env.VITE_API_URL || (isLocal ? 'http://localhost:3000' : 'https://asl-backend-gateway.onrender.com');
-          const res = await axios.get(`${apiUrl}/api/vocabulary`);
-          setVocabulary(res.data.available_words || []);
-          setYoutubeMapping(res.data.youtube_mapping || {});
-        } catch (err) {
-          console.error("Failed to fetch vocabulary", err);
-        } finally {
-          setIsInitialLoading(false);
-        }
-      };
       fetchVocab();
     }
   }, [isSignedIn]);
@@ -136,6 +143,7 @@ function App() {
               setView('practice');
             }}
             initialVocabulary={vocabulary}
+            onRefresh={fetchVocab}
           />
         )}
         {view === 'stats' && (

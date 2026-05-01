@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
 import { Search, Loader2, ArrowLeft } from 'lucide-react';
 import posthog from 'posthog-js';
 
@@ -7,13 +6,12 @@ interface Props {
   onSelect: (phrase: string) => void;
   onBack: () => void;
   initialVocabulary?: string[];
+  onRefresh?: () => void;
 }
 
-export function VocabularyIndex({ onSelect, onBack, initialVocabulary }: Props) {
-  const [words, setWords] = useState<string[]>(initialVocabulary || []);
-  const [loading, setLoading] = useState(!initialVocabulary || initialVocabulary.length === 0);
+export function VocabularyIndex({ onSelect, onBack, initialVocabulary = [], onRefresh }: Props) {
+  const words = initialVocabulary;
   const [search, setSearch] = useState('');
-  const [forceFetch, setForceFetch] = useState(0);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -34,27 +32,6 @@ export function VocabularyIndex({ onSelect, onBack, initialVocabulary }: Props) 
       if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
     };
   }, [search, words]);
-
-  useEffect(() => {
-    const fetchVocab = async () => {
-      setLoading(true);
-      try {
-        const isLocal = window.location.hostname === 'localhost';
-        const apiUrl = import.meta.env.VITE_API_URL || (isLocal ? 'http://localhost:3000' : 'https://asl-backend-gateway.onrender.com');
-        const res = await axios.get(`${apiUrl}/api/vocabulary`);
-        setWords(res.data.available_words || []);
-      } catch (err) {
-        console.error("Failed to fetch vocabulary", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    // Fetch if words are empty OR if user explicitly clicked Force Reload
-    if (words.length === 0 || forceFetch > 0) {
-      fetchVocab();
-    }
-  }, [forceFetch]);
 
   const filtered = words.filter(w => w.toLowerCase().includes(search.toLowerCase()));
 
@@ -82,7 +59,7 @@ export function VocabularyIndex({ onSelect, onBack, initialVocabulary }: Props) 
           {words.length} TOTAL
         </span>
         <button 
-          onClick={() => { setWords([]); setForceFetch(prev => prev + 1); }}
+          onClick={onRefresh}
           className="ml-auto text-xs font-bold text-gray-500 hover:text-white uppercase tracking-widest cursor-pointer"
         >
           Force Reload
@@ -100,36 +77,29 @@ export function VocabularyIndex({ onSelect, onBack, initialVocabulary }: Props) 
         />
       </div>
 
-      {loading ? (
-        <div className="flex flex-col items-center justify-center py-20 gap-4">
-          <Loader2 className="w-10 h-10 text-blue-500 animate-spin" />
-          <p className="text-gray-400">Loading vocabulary...</p>
-        </div>
-      ) : (
-        <div className="space-y-12 pb-20">
-          {letters.map(letter => (
-            <div key={letter} className="space-y-4">
-              <h2 className="text-xl font-bold text-blue-400 border-b border-white/5 pb-2">{letter}</h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                {grouped[letter].map(word => (
-                  <button
-                    key={word}
-                    onClick={() => onSelect(word)}
-                    className="text-left px-4 py-3 bg-white/5 hover:bg-blue-600/20 border border-white/5 hover:border-blue-500/30 rounded-xl text-gray-300 hover:text-white transition-all cursor-pointer capitalize text-sm font-medium"
-                  >
-                    {word}
-                  </button>
-                ))}
-              </div>
+      <div className="space-y-12 pb-20">
+        {letters.map(letter => (
+          <div key={letter} className="space-y-4">
+            <h2 className="text-xl font-bold text-blue-400 border-b border-white/5 pb-2">{letter}</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+              {grouped[letter].map(word => (
+                <button
+                  key={word}
+                  onClick={() => onSelect(word)}
+                  className="text-left px-4 py-3 bg-white/5 hover:bg-blue-600/20 border border-white/5 hover:border-blue-500/30 rounded-xl text-gray-300 hover:text-white transition-all cursor-pointer capitalize text-sm font-medium"
+                >
+                  {word}
+                </button>
+              ))}
             </div>
-          ))}
-          {letters.length === 0 && (
-            <div className="text-center py-20 bg-white/5 rounded-3xl border border-white/5">
-              <p className="text-gray-500 italic">No signs found matching "{search}"</p>
-            </div>
-          )}
-        </div>
-      )}
+          </div>
+        ))}
+        {letters.length === 0 && (
+          <div className="text-center py-20 bg-white/5 rounded-3xl border border-white/5">
+            <p className="text-gray-500 italic">No signs found matching "{search}"</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
